@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#fff7fa">
+  <title>Moaz &amp; Rukhsar — Eternal Bond</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700;800&family=Great+Vibes&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+
+  <style>
+    :root {
+      --ivory: #fffaf6;
+      --paper: #fffdfb;
+      --blush: #fff0f4;
+      --pink: #f4c6d3;
+      --rose: #d96b8d;
+      --rose-dark: #a84263;
+      --wine: #572338;
+      --gold: #c49a55;
+      --gold-light: #f3dfb5;
+      --muted: #896775;
+      --line: rgba(196,154,85,.42);
+      --shadow: 0 18px 48px rgba(105,44,66,.11);
+      --radius: 26px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--wine);
+      font-family: "Plus Jakarta Sans", sans-serif;
+      background:
+        radial-gradient(ellipse at 10% 5%, rgba(255,222,232,.7), transparent 34%),
+        radial-gradient(ellipse at 92% 24%, rgba(255,235,241,.85), transparent 36%),
+        linear-gradient(180deg, #fff 0%, #fff9fb 48%, #fff0f4 100%);
+    }
+    button { font: inherit; }
+    button:focus-visible, a:focus-visible { outline: 3px solid var(--gold); outline-offset: 4px; }
+    .page-wrapper { width: min(100% - 28px, 650px); margin: 0 auto; padding: 30px 0 52px; display: flex; flex-direction: column; gap: 23px; position: relative; z-index: 1; }
+    .soft-card, .profile-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, rgba(255,255,255,.97), rgba(255,246,249,.94));
+      box-shadow: var(--shadow);
+    }
+    .soft-card { padding: 26px 20px; }
+    .soft-card::before, .profile-card::before {
+      content: ""; position: absolute; inset: 7px; border: 1px solid rgba(196,154,85,.16);
+      border-radius: calc(var(--radius) - 7px); pointer-events: none;
+    }
+    .section-kicker { color: var(--rose-dark); text-transform: uppercase; letter-spacing: .19em; font-size: .68rem; font-weight: 800; margin-bottom: 8px; }
+    .section-title { font-family: "Cinzel", serif; font-size: clamp(1.18rem, 5vw, 1.55rem); line-height: 1.3; font-weight: 700; color: var(--wine); margin-bottom: 7px; }
+    .section-sub { color: var(--muted); font-size: .87rem; line-height: 1.65; margin-bottom: 19px; }
+    .section-heading { text-align: center; position: relative; z-index: 1; }
+    .gold-divider { width: 76px; height: 2px; margin: 15px auto 18px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+    .btn {
+      border: 1px solid rgba(196,154,85,.65); border-radius: 999px; padding: 11px 19px;
+      color: var(--wine); background: linear-gradient(135deg, #fff, #ffedf2);
+      font-weight: 800; font-size: .82rem; cursor: pointer; box-shadow: 0 7px 18px rgba(168,66,99,.1);
+      transition: transform .2s ease, box-shadow .2s ease;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:hover { transform: translateY(-2px); box-shadow: 0 10px 23px rgba(168,66,99,.15); }
+
+    /* Grand entrance: double doors first, then the heavy curtains */
+    #entry-gate {
+      position: fixed; inset: 0; z-index: 1000; overflow: hidden; perspective: 1800px;
+      background:
+        radial-gradient(ellipse at 50% 38%, rgba(255,255,255,.1), transparent 52%),
+        linear-gradient(135deg, #4c1c30, #8e3c59 48%, #4a1c30);
+      transition: opacity .8s ease, visibility .8s ease;
+    }
+    #entry-gate.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+    .gate-halo { position: absolute; inset: 3.5%; border: 1px solid rgba(244,220,176,.52); box-shadow: inset 0 0 70px rgba(255,231,196,.12), 0 0 55px rgba(0,0,0,.16); pointer-events: none; }
+    .gate-arch {
+      position: absolute; inset: 2.2% 5.5%; border: 7px double rgba(227,194,133,.8);
+      border-bottom-width: 4px; border-radius: 48% 48% 8px 8px / 13% 13% 8px 8px;
+      box-shadow: inset 0 0 0 8px rgba(255,255,255,.035), 0 0 0 2px rgba(255,255,255,.08);
+      pointer-events: none;
+    }
+    .gate-arch::before, .gate-arch::after {
+      content: "✦"; position: absolute; color: #f4dfb5; font-size: clamp(20px,4vw,36px); top: 9%;
+      text-shadow: 0 0 18px rgba(255,230,174,.7);
+    }
+    .gate-arch::before { left: 10%; } .gate-arch::after { right: 10%; }
+    .door-stage {
+      position: absolute; inset: 0; z-index: 6; display: grid; grid-template-columns: 1fr 1fr;
+      padding: 5.2% 8.5% 3.8%; transform-style: preserve-3d;
+    }
+    .door {
+      position: relative; min-width: 0; height: 100%; transform-style: preserve-3d;
+      border: 3px solid #d8b778;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.14) 0 3px, transparent 3px 23px),
+        linear-gradient(135deg, #fffdf7 0%, #f8e8ce 28%, #fffaf0 54%, #e9d2ac 100%);
+      box-shadow: inset 0 0 0 7px rgba(255,255,255,.62), inset 0 0 32px rgba(138,84,37,.22), 0 18px 50px rgba(0,0,0,.22);
+      transition: transform 1.35s cubic-bezier(.72,0,.18,1);
+    }
+    .door.left { transform-origin: left center; border-radius: 48% 0 0 5px / 9% 0 0 5px; }
+    .door.right { transform-origin: right center; border-radius: 0 48% 5px 0 / 0 9% 5px 0; }
+    .door-inner {
+      position: absolute; inset: 2.5%; border: 2px solid rgba(174,125,58,.78); padding: 3.5%;
+      display: flex; flex-direction: column; gap: 4%; box-shadow: inset 0 0 20px rgba(174,125,58,.13);
+    }
+    .door-panel {
+      flex: 1; position: relative; border: 2px solid rgba(185,139,75,.7); border-radius: 45% 45% 8px 8px / 13% 13% 8px 8px;
+      background: linear-gradient(145deg, rgba(255,255,255,.7), rgba(239,218,184,.3));
+      box-shadow: inset 0 0 0 5px rgba(255,255,255,.32), inset 0 0 25px rgba(170,116,53,.13);
+    }
+    .door-panel.lower { border-radius: 8px; }
+    .door-panel::after {
+      content: "✧"; position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+      font-size: clamp(26px,5vw,54px); color: rgba(177,127,62,.72); text-shadow: 0 2px 8px #fff;
+    }
+    .door-handle {
+      position: absolute; top: 50%; width: 13px; height: clamp(80px,17vh,145px); transform: translateY(-50%);
+      border-radius: 99px; background: linear-gradient(90deg,#8c5a27,#fff0bc 35%,#bd8b42 65%,#71451f);
+      box-shadow: 0 5px 15px rgba(70,35,12,.35);
+    }
+    .door.left .door-handle { right: 5%; } .door.right .door-handle { left: 5%; }
+    #entry-gate.door-opening .door.left { transform: rotateY(-112deg); }
+    #entry-gate.door-opening .door.right { transform: rotateY(112deg); }
+    .curtains { position: absolute; inset: 0; z-index: 4; display: flex; pointer-events: none; }
+    .curtain {
+      width: 50%; height: 100%; position: relative;
+      background:
+        repeating-linear-gradient(90deg, rgba(255,255,255,.17) 0 5px, rgba(120,28,60,.10) 9px 14px, transparent 21px 34px),
+        linear-gradient(90deg,#58182f 0%,#a84f70 17%,#f2c7d2 35%,#9c3e60 53%,#5c1b34 100%);
+      box-shadow: inset 0 0 55px rgba(28,5,17,.42), 0 0 25px rgba(0,0,0,.2);
+      transition: transform 1.65s cubic-bezier(.22,1,.36,1);
+    }
+    .curtain::before { content: ""; position: absolute; inset: 0 7%; border-inline: 2px solid rgba(235,203,145,.55); opacity: .8; }
+    .curtain::after { content: ""; position: absolute; top: 0; bottom: 0; width: 13px; background: linear-gradient(90deg,#9a6a37,#fff0bd,#9a6a37); opacity: .8; }
+    .curtain.left::after { right: 0; } .curtain.right::after { left: 0; }
+    #entry-gate.curtain-opening .curtain.left { transform: translateX(-103%); }
+    #entry-gate.curtain-opening .curtain.right { transform: translateX(103%); }
+    .curtain-valance {
+      position: absolute; z-index: 10; top: 0; left: 5%; width: 90%; height: 11%;
+      background: linear-gradient(180deg,#f6e0b4,#9b6432 28%,#e9c98d 55%,#7c452b);
+      clip-path: polygon(0 0,100% 0,100% 42%,94% 100%,86% 54%,78% 100%,70% 54%,62% 100%,54% 54%,46% 100%,38% 54%,30% 100%,22% 54%,14% 100%,6% 54%,0 100%);
+      filter: drop-shadow(0 8px 8px rgba(0,0,0,.3));
+      transition: transform 1s ease, opacity .7s ease;
+    }
+    #entry-gate.curtain-opening .curtain-valance { transform: translateY(-120%); opacity: 0; }
+    .open-medallion {
+      position: absolute; z-index: 20; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      width: clamp(126px,30vw,176px); aspect-ratio: 1; border-radius: 50%; border: 3px double #c69a52;
+      background: radial-gradient(circle at 32% 25%,#fff,#f8e8c9 60%,#d7b579);
+      color: #572338; font: 800 clamp(1.05rem,4vw,1.45rem) "Cinzel",serif; letter-spacing: .2em;
+      box-shadow: 0 0 0 8px rgba(255,255,255,.16), 0 12px 40px rgba(0,0,0,.38), inset 0 0 0 5px rgba(255,255,255,.48);
+      cursor: pointer; transition: opacity .45s ease, transform .3s ease;
+    }
+    .open-medallion:active { transform: translate(-50%,-50%) scale(.95); }
+    #entry-gate.door-opening .open-medallion { opacity: 0; pointer-events: none; }
+    .gate-sparkle { position: absolute; z-index: 11; color: #f8e2b5; text-shadow: 0 0 16px #fff; animation: twinkle 2.5s ease-in-out infinite; pointer-events: none; }
+    .gate-sparkle.s1 { top: 18%; left: 15%; } .gate-sparkle.s2 { top: 23%; right: 15%; animation-delay: .8s; } .gate-sparkle.s3 { bottom: 17%; left: 50%; animation-delay: 1.3s; }
+    @keyframes twinkle { 0%,100% { opacity:.25; transform:scale(.7) rotate(0); } 50% { opacity:1; transform:scale(1.25) rotate(45deg); } }
+
+    /* Music control */
+    .music-toggle {
+      position: fixed; top: max(12px, env(safe-area-inset-top)); right: 12px; z-index: 700;
+      border: 1px solid var(--line); border-radius: 99px; padding: 10px 14px;
+      background: rgba(255,255,255,.92); color: var(--wine); box-shadow: var(--shadow);
+      display: flex; align-items: center; gap: 8px; font-size: .75rem; font-weight: 800; cursor: pointer;
+      backdrop-filter: blur(12px);
+    }
+    .music-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rose); box-shadow: 0 0 0 4px rgba(217,107,141,.13); }
+
+    /* Floating petals */
+    #petalLayer { position: fixed; inset: 0; overflow: hidden; pointer-events: none; z-index: 0; }
+    .petal { position: absolute; top: -35px; width: 12px; height: 18px; border-radius: 90% 10% 90% 10%; background: linear-gradient(135deg,#fff0f4,#e99bb2); opacity: .65; animation: fall linear infinite; }
+    @keyframes fall { to { transform: translate3d(var(--drift),110vh,0) rotate(720deg); } }
+
+    /* Hero */
+    .hero-card { text-align: center; padding: 34px 20px 30px; background: linear-gradient(145deg,#fff 0%,#fff7f9 55%,#fff0f4 100%); }
+    .hero-ornament { color: var(--gold); letter-spacing: .55em; font-size: .9rem; margin-bottom: 13px; }
+    .bismillah-pill { display: inline-block; border: 1px solid var(--line); border-radius: 99px; padding: 8px 14px; background: #fffaf3; color: #866548; font-size: .7rem; font-weight: 700; letter-spacing: .04em; margin-bottom: 22px; }
+    .couple-stack { display: flex; flex-direction: column; align-items: center; line-height: 1.02; margin-bottom: 18px; }
+    .name-line { font: 800 clamp(2.45rem,11vw,4rem) "Cinzel",serif; letter-spacing: .075em; color: var(--wine); text-shadow: 0 3px 0 #fff, 0 8px 22px rgba(168,66,99,.12); }
+    .amp-line { font: 400 clamp(2.4rem,10vw,3.5rem) "Great Vibes",cursive; color: var(--rose); margin: 5px 0 2px; }
+    .hero-subtitle { color: var(--rose-dark); font: 400 clamp(1.55rem,7vw,2.05rem) "Great Vibes",cursive; margin-bottom: 15px; }
+    .romantic-lines { max-width: 440px; margin: 0 auto; color: var(--muted); font-size: .88rem; line-height: 1.8; }
+    .romantic-lines p + p { margin-top: 4px; }
+
+    /* Profiles */
+    .profiles-stack { display: grid; gap: 15px; }
+    .profile-card { padding: 24px 18px; text-align: center; }
+    .profile-emblem { width: 43px; height: 43px; border-radius: 50%; margin: 0 auto 11px; display: grid; place-items: center; color: var(--gold); border: 1px solid var(--line); background: #fffaf2; font-size: 1.1rem; }
+    .profile-role { color: var(--rose-dark); font-size: .67rem; font-weight: 800; text-transform: uppercase; letter-spacing: .2em; margin-bottom: 7px; }
+    .profile-name { font: 700 1.65rem "Cinzel",serif; letter-spacing: .07em; margin-bottom: 7px; }
+    .profile-parentage { font-weight: 800; font-size: .91rem; margin-bottom: 5px; }
+    .profile-address { color: var(--muted); font-size: .83rem; line-height: 1.6; }
+
+    /* Scratch heart */
+    .scratch-card { text-align: center; }
+    .heart-stage { position: relative; width: min(100%,340px); aspect-ratio: 1.12; margin: 0 auto 16px; display: grid; place-items: center; touch-action: none; user-select: none; }
+    .heart-reveal-layer { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: 0; transform: scale(.88); transition: opacity .55s ease, transform .65s cubic-bezier(.2,1.4,.4,1); pointer-events: none; z-index: 1; }
+    .heart-reveal-layer.unlocked { opacity: 1; transform: scale(1); }
+    .heart-reveal-stack { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.02; margin-top: 2%; filter: drop-shadow(0 2px 8px rgba(255,231,174,.3)); }
+    .heart-reveal-name { font: 800 clamp(1.65rem,7vw,2.25rem) "Cinzel",serif; letter-spacing: .075em; color: #fff1c9; text-shadow: 0 2px 2px #79223d, 0 0 14px rgba(255,220,155,.65); }
+    .heart-reveal-amp { font: 400 clamp(1.8rem,7vw,2.35rem) "Great Vibes",cursive; color: #fff; margin: 5px 0; text-shadow: 0 2px 8px #7c1835; }
+    #heartCanvas { position: relative; z-index: 2; width: 100%; height: 100%; display: block; cursor: crosshair; touch-action: none; }
+    .scratch-hint { color: var(--muted); font-size: .78rem; margin-bottom: 13px; }
+    .scratch-progress { width: min(100%,260px); height: 5px; background: #f5e2e8; border-radius: 99px; margin: 0 auto 14px; overflow: hidden; }
+    .scratch-progress span { display: block; height: 100%; width: 0; border-radius: inherit; background: linear-gradient(90deg,#d96b8d,#d6ad69); transition: width .15s ease; }
+
+    /* Timers */
+    .timer-card { text-align: center; }
+    .timer-date { color: var(--muted); font-size: .84rem; font-weight: 700; margin: 10px 0 17px; }
+    .timer-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; }
+    .time-box { border: 1px solid rgba(196,154,85,.38); border-radius: 17px; padding: 14px 4px 12px; background: linear-gradient(180deg,#fff,#fff1f5); box-shadow: inset 0 1px 0 #fff; min-width: 0; }
+    .time-val { font: 700 clamp(1.05rem,5vw,1.55rem) "Cinzel",serif; color: var(--wine); line-height: 1.2; overflow-wrap: anywhere; }
+    .time-lbl { color: var(--muted); font-size: .61rem; font-weight: 800; letter-spacing: .09em; text-transform: uppercase; margin-top: 6px; }
+
+    /* Five user-owned photo frames: intentionally empty */
+    .photo-strip { display: flex; gap: 13px; overflow-x: auto; scroll-snap-type: x mandatory; padding: 2px 2px 12px; scrollbar-width: thin; scrollbar-color: var(--pink) transparent; }
+    .photo-slide { flex: 0 0 78%; max-width: 300px; aspect-ratio: 3 / 4; height: auto; scroll-snap-align: center; position: relative; overflow: hidden; border-radius: 20px; border: 1px solid var(--line); padding: 7px; background: linear-gradient(145deg,#fff,#fff4f7); box-shadow: 0 9px 24px rgba(105,44,66,.1); }
+    .photo-slide::before { content: ""; position: absolute; inset: 7px; border: 1px solid rgba(196,154,85,.45); border-radius: 14px; pointer-events: none; z-index: 2; }
+    .photo-slide img { width: 100%; height: 100%; display: block; object-fit: contain; border-radius: 13px; background: linear-gradient(145deg,#fffaf7,#fbe8ee); }
+    .photo-slide img[src=""] { visibility: hidden; }
+    .photo-slide:has(img[src=""]) { background: linear-gradient(145deg,#fffaf7,#fbe8ee); }
+
+    /* Route and map */
+    .route-visual { border: 1px solid var(--line); border-radius: 20px; padding: 19px 14px 15px; background: linear-gradient(180deg,#fff,#fff4f7); }
+    .route-nodes { display: flex; justify-content: space-between; gap: 12px; }
+    .node-box { flex: 1; min-width: 0; }
+    .node-box.right-align { text-align: right; }
+    .node-tag { color: var(--rose-dark); font-size: .64rem; text-transform: uppercase; letter-spacing: .14em; font-weight: 800; margin-bottom: 4px; }
+    .node-place { font-size: .78rem; font-weight: 800; line-height: 1.5; }
+    .distance-track-wrap { position: relative; padding-top: 30px; margin-top: 7px; }
+    .distance-center-badge { position: absolute; top: 0; left: 50%; transform: translateX(-50%); border: 1px solid var(--line); background: #fff; color: var(--wine); border-radius: 99px; padding: 5px 13px; white-space: nowrap; font-size: .74rem; font-weight: 800; box-shadow: 0 4px 12px rgba(105,44,66,.08); }
+    .route-line { height: 4px; margin: 8px 9px; border-radius: 99px; background: linear-gradient(90deg,#e7a6b9,#f2d5a1,#e7a6b9); position: relative; }
+    .route-beacon { position: absolute; left: 0; top: 50%; width: 13px; height: 13px; transform: translate(-50%,-50%); border-radius: 50%; background: #c83d63; box-shadow: 0 0 0 5px rgba(200,61,99,.13); animation: travel 4s ease-in-out infinite alternate; }
+    @keyframes travel { to { left: 100%; box-shadow: 0 0 0 10px rgba(200,61,99,0); } }
+    .route-dir-note { text-align: center; color: var(--muted); font-size: .73rem; line-height: 1.5; margin-top: 12px; }
+    #districtMap { width: 100%; height: 290px; border-radius: 18px; border: 1px solid var(--line); overflow: hidden; background: #fff3f6; position: relative; z-index: 1; }
+    .map-fallback { height: 100%; display: grid; place-content: center; text-align: center; gap: 9px; padding: 20px; color: var(--wine); background: linear-gradient(145deg,#fff,#ffedf2); font-size: .85rem; }
+
+    /* Secret letter */
+    .letter-card { text-align: center; }
+    .envelope-wrap { width: 190px; height: 130px; margin: 10px auto 17px; position: relative; cursor: pointer; perspective: 700px; }
+    .envelope { position: absolute; inset: 20px 0 0; background: linear-gradient(145deg,#f4d8df,#d98da5); border: 1px solid #c58b68; border-radius: 8px; box-shadow: 0 10px 20px rgba(105,44,66,.15); }
+    .envelope::before { content: ""; position: absolute; inset: 0; background: linear-gradient(35deg,transparent 49%,rgba(255,255,255,.6) 50%,transparent 51%), linear-gradient(-35deg,transparent 49%,rgba(255,255,255,.6) 50%,transparent 51%); }
+    .envelope-flap { position: absolute; left: 0; right: 0; top: 20px; height: 70px; background: linear-gradient(145deg,#f9e7d0,#d7a46e); clip-path: polygon(0 0,100% 0,50% 100%); transform-origin: top; transition: transform .7s ease; z-index: 3; border-radius: 7px 7px 0 0; }
+    .wax-seal { position: absolute; z-index: 4; left: 50%; top: 60px; transform: translateX(-50%); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 30% 25%,#d96b8d,#8e2749); color: #ffe9bd; border: 1px solid #e6bd7a; font-size: 1rem; transition: opacity .3s ease; }
+    .envelope-wrap.open .envelope-flap { transform: rotateX(180deg); }
+    .envelope-wrap.open .wax-seal { opacity: 0; }
+    .letter-message { display: none; max-width: 450px; margin: 0 auto; padding: 18px; border: 1px solid var(--line); border-radius: 17px; background: #fffaf3; color: var(--muted); font: 400 1.35rem/1.5 "Great Vibes",cursive; }
+    .letter-message.show { display: block; animation: letterIn .6s ease both; }
+    @keyframes letterIn { from { opacity:0; transform: translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+    /* Dua and footer */
+    .dua-box { margin-top: 19px; padding-top: 17px; border-top: 1px dashed var(--line); text-align: center; }
+    .ameen-count { color: var(--muted); font-size: .77rem; font-weight: 700; margin-top: 10px; }
+    .footer-note { text-align: center; color: var(--muted); font-size: .75rem; line-height: 1.8; padding: 5px 12px 18px; }
+    .footer-heart { color: var(--rose); font-size: 1.15rem; }
+
+    @media (min-width: 700px) {
+      .page-wrapper { padding-top: 42px; gap: 27px; }
+      .soft-card { padding: 32px 28px; }
+      .photo-slide { flex-basis: 62%; max-width: 300px; height: auto; }
+      #districtMap { height: 340px; }
+    }
+    @media (max-width: 380px) {
+      .page-wrapper { width: min(100% - 20px,650px); }
+      .soft-card { padding: 23px 14px; }
+      .timer-grid { gap: 5px; }
+      .time-box { padding: 11px 2px; }
+      .time-lbl { font-size: .55rem; }
+      .photo-slide { flex-basis: 84%; max-width: 300px; height: auto; }
+      .door-stage { padding-inline: 5%; }
+      .gate-arch { inset-inline: 2.5%; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <div id="petalLayer" aria-hidden="true"></div>
+
+  <!-- Full-screen royal entrance. The only text on the gate button is OPEN. -->
+  <div id="entry-gate" role="dialog" aria-label="Welcome">
+    <div class="gate-halo"></div>
+    <div class="gate-arch"></div>
+    <div class="door-stage" aria-hidden="true">
+      <div class="door left">
+        <div class="door-inner">
+          <div class="door-panel"></div>
+          <div class="door-panel lower"></div>
+        </div>
+        <span class="door-handle"></span>
+      </div>
+      <div class="door right">
+        <div class="door-inner">
+          <div class="door-panel"></div>
+          <div class="door-panel lower"></div>
+        </div>
+        <span class="door-handle"></span>
+      </div>
+    </div>
+    <div class="curtain-valance" aria-hidden="true"></div>
+    <div class="curtains" aria-hidden="true">
+      <div class="curtain left"></div>
+      <div class="curtain right"></div>
+    </div>
+    <span class="gate-sparkle s1" aria-hidden="true">✦</span>
+    <span class="gate-sparkle s2" aria-hidden="true">✧</span>
+    <span class="gate-sparkle s3" aria-hidden="true">✦</span>
+    <button type="button" class="open-medallion" id="openDoorBtn" aria-label="Open">OPEN</button>
+  </div>
+
+  <button type="button" class="music-toggle" id="musicToggleBtn" aria-pressed="false">
+    <span class="music-dot" id="musicDot"></span><span id="musicLabel">Play Melody</span>
+  </button>
+
+  <main class="page-wrapper" id="mainContent">
+    <!-- 1. Hero -->
+    <section class="soft-card hero-card">
+      <div class="hero-ornament" aria-hidden="true">✦ &nbsp; ✧ &nbsp; ✦</div>
+      <div class="bismillah-pill">In the Name of Allah, The Most Merciful</div>
+      <div class="couple-stack" aria-label="Moaz and Rukhsar">
+        <span class="name-line">MOAZ</span>
+        <span class="amp-line">&amp;</span>
+        <span class="name-line">RUKHSAR</span>
+      </div>
+      <div class="hero-subtitle">Eternal Bond</div>
+      <div class="gold-divider"></div>
+      <div class="romantic-lines">
+        <p>Two hearts finding calm, warmth, and belonging in one another.</p>
+        <p>Every quiet moment together turns into a memory worth keeping.</p>
+        <p>Written with grace, patience, and sincere devotion.</p>
+      </div>
+    </section>
+
+    <!-- 2. Couple profiles: original details preserved -->
+    <section class="profiles-stack" aria-label="Couple Details">
+      <article class="profile-card">
+        <div class="profile-emblem" aria-hidden="true">♛</div>
+        <div class="profile-role">Groom</div>
+        <h2 class="profile-name">MOAZ</h2>
+        <p class="profile-parentage">S/O Rahimullah</p>
+        <p class="profile-address">Rampur, Warisnagar, Samastipur, Bihar</p>
+      </article>
+      <article class="profile-card">
+        <div class="profile-emblem" aria-hidden="true">❀</div>
+        <div class="profile-role">Bride</div>
+        <h2 class="profile-name">RUKHSAR</h2>
+        <p class="profile-parentage">D/O Hussain</p>
+        <p class="profile-address">Shaikhopur, Vaishali, Bihar</p>
+      </article>
+    </section>
+
+    <!-- 3. Scratch-to-reveal ruby heart -->
+    <section class="soft-card scratch-card">
+      <div class="section-heading">
+        <div class="section-kicker">A Little Secret</div>
+        <h2 class="section-title">Reveal the Heart</h2>
+        <p class="section-sub">Scratch the ruby heart to discover the names inside</p>
+      </div>
+      <div class="heart-stage">
+        <div class="heart-reveal-layer" id="heartRevealLayer" aria-live="polite">
+          <div class="heart-reveal-stack">
+            <span class="heart-reveal-name">MOAZ</span>
+            <span class="heart-reveal-amp">&amp;</span>
+            <span class="heart-reveal-name">RUKHSAR</span>
+          </div>
+        </div>
+        <canvas id="heartCanvas" width="600" height="540" aria-label="Scratch the heart to reveal the names"></canvas>
+      </div>
+      <p class="scratch-hint" id="scratchHint">Keep scratching — the names will appear after the heart is revealed.</p>
+      <div class="scratch-progress" aria-hidden="true"><span id="scratchProgress"></span></div>
+      <button type="button" class="btn" id="scratchAgainBtn">Scratch Again</button>
+    </section>
+
+    <!-- 4. Proposal elapsed timer -->
+    <section class="soft-card timer-card">
+      <div class="section-kicker">Since the Beginning</div>
+      <h2 class="section-title">Time Since Proposal</h2>
+      <p class="timer-date">13 July 2026 (Monday) &bull; 2:47 AM</p>
+      <div class="timer-grid" aria-live="polite">
+        <div class="time-box"><div class="time-val" id="propDays">0</div><div class="time-lbl">Days</div></div>
+        <div class="time-box"><div class="time-val" id="propHours">00</div><div class="time-lbl">Hours</div></div>
+        <div class="time-box"><div class="time-val" id="propMins">00</div><div class="time-lbl">Minutes</div></div>
+        <div class="time-box"><div class="time-val" id="propSecs">00</div><div class="time-lbl">Seconds</div></div>
+      </div>
+    </section>
+
+    <!-- 5. Exactly five empty frames. Add your own image filenames later. -->
+    <section class="soft-card">
+      <div class="section-heading">
+        <div class="section-kicker">Cherished Frames</div>
+        <h2 class="section-title">Moments Together</h2>
+        <p class="section-sub">Swipe sideways to browse your five photo frames</p>
+      </div>
+      <div class="photo-strip" id="photoStrip" aria-label="Five empty photo frames">
+        <!-- To add your own photos later, put a filename in each img src, e.g. src="photo1.jpg". -->
+        <div class="photo-slide"><img src="" alt=""></div>
+        <div class="photo-slide"><img src="" alt=""></div>
+        <div class="photo-slide"><img src="" alt=""></div>
+        <div class="photo-slide"><img src="" alt=""></div>
+        <div class="photo-slide"><img src="" alt=""></div>
+      </div>
+    </section>
+
+    <!-- 6A. Original directional route -->
+    <section class="soft-card">
+      <div class="section-heading">
+        <div class="section-kicker">Miles Between Homes</div>
+        <h2 class="section-title">Distance Route</h2>
+        <p class="section-sub">A little light travelling from Rukhsar's side toward Moaz's side</p>
+      </div>
+      <div class="route-visual">
+        <div class="route-nodes">
+          <div class="node-box">
+            <div class="node-tag">Starts Here</div>
+            <div class="node-place">Rukhsar — Shaikhopur, Vaishali, Bihar</div>
+          </div>
+          <div class="node-box right-align">
+            <div class="node-tag">Toward</div>
+            <div class="node-place">Moaz — Rampur, Warisnagar, Samastipur, Bihar</div>
+          </div>
+        </div>
+        <div class="distance-track-wrap">
+          <div class="distance-center-badge" id="distanceBadge">Calculating distance…</div>
+          <div class="route-line"><span class="route-beacon" aria-hidden="true"></span></div>
+        </div>
+        <p class="route-dir-note">Shaikhopur, Vaishali &rarr; Rampur, Warisnagar, Samastipur</p>
+      </div>
+      <div style="text-align:center;margin-top:16px">
+        <a class="btn" style="display:inline-block;text-decoration:none" target="_blank" rel="noopener noreferrer"
+          href="https://www.google.com/maps/dir/?api=1&amp;origin=Shaikhopur,+Vaishali,+Bihar&amp;destination=Rampur,+Warisnagar,+Samastipur,+Bihar">Open Route in Maps</a>
+      </div>
+    </section>
+
+    <!-- 6B. Interactive Leaflet map -->
+    <section class="soft-card">
+      <div class="section-heading">
+        <div class="section-kicker">Location Map</div>
+        <h2 class="section-title">Vaishali &amp; Samastipur View</h2>
+        <p class="section-sub">Explore both locations on the map</p>
+      </div>
+      <div id="districtMap">
+        <div class="map-fallback" id="mapFallback">
+          <strong>Shaikhopur, Vaishali</strong>
+          <span>&harr;</span>
+          <strong>Rampur, Warisnagar, Samastipur</strong>
+          <span>Bihar, India — connect to the internet to load the interactive map.</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. Secret letter -->
+    <section class="soft-card letter-card">
+      <div class="section-kicker">A Message from the Heart</div>
+      <h2 class="section-title">A Little Secret Letter</h2>
+      <p class="section-sub">Tap the envelope to open the letter</p>
+      <button type="button" class="envelope-wrap" id="letterButton" aria-label="Open the secret letter" aria-expanded="false">
+        <span class="envelope"></span><span class="envelope-flap"></span><span class="wax-seal">♥</span>
+      </button>
+      <div class="letter-message" id="letterMessage">
+        May every new day bring kindness, peace, patience, and countless beautiful memories.
+      </div>
+    </section>
+
+    <!-- 8. Nikah countdown and Ameen -->
+    <section class="soft-card timer-card">
+      <div class="section-kicker">Sacred Promise</div>
+      <h2 class="section-title">Nikah Countdown</h2>
+      <p class="timer-date">15 November 2032</p>
+      <div class="timer-grid" aria-live="polite">
+        <div class="time-box"><div class="time-val" id="nikahDays">0</div><div class="time-lbl">Days</div></div>
+        <div class="time-box"><div class="time-val" id="nikahHours">00</div><div class="time-lbl">Hours</div></div>
+        <div class="time-box"><div class="time-val" id="nikahMins">00</div><div class="time-lbl">Minutes</div></div>
+        <div class="time-box"><div class="time-val" id="nikahSecs">00</div><div class="time-lbl">Seconds</div></div>
+      </div>
+      <div class="dua-box">
+        <p class="section-sub" style="margin-bottom:13px">May Allah bless the future with goodness, peace, and barakah.</p>
+        <button type="button" class="btn" id="ameenBtn">Tap for Dua · Ameen</button>
+        <div class="ameen-count" id="ameenCount">0 Ameen prayers offered</div>
+      </div>
+    </section>
+
+    <footer class="footer-note">
+      <div class="footer-heart">♥</div>
+      <strong>MOAZ &amp; RUKHSAR</strong><br>
+      A Beautiful Bond · Eternal Memories
+    </footer>
+  </main>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Small, lightweight falling rose-petal decoration.
+    (function makePetals() {
+      const layer = document.getElementById("petalLayer");
+      for (let i = 0; i < 17; i++) {
+        const petal = document.createElement("span");
+        petal.className = "petal";
+        petal.style.left = (i * 6.1) + "%";
+        petal.style.animationDuration = (13 + (i % 6) * 2.4) + "s";
+        petal.style.animationDelay = (-i * 1.7) + "s";
+        petal.style.setProperty("--drift", ((i % 2 ? 1 : -1) * (25 + (i % 5) * 12)) + "px");
+        layer.appendChild(petal);
+      }
+    })();
+
+    // Original soft WebAudio melody. It starts only after the visitor taps OPEN.
+    (function setupMelody() {
+      const btn = document.getElementById("musicToggleBtn");
+      const label = document.getElementById("musicLabel");
+      const dot = document.getElementById("musicDot");
+      let audio = null, interval = null, playing = false, step = 0;
+      const notes = [523.25, 659.25, 783.99, 987.77, 880, 783.99, 659.25, 587.33];
+
+      function tone(freq) {
+        if (!audio) return;
+        const osc = audio.createOscillator();
+        const gain = audio.createGain();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(freq, audio.currentTime);
+        gain.gain.setValueAtTime(0.0001, audio.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.025, audio.currentTime + 0.07);
+        gain.gain.exponentialRampToValueAtTime(0.0001, audio.currentTime + 1.05);
+        osc.connect(gain); gain.connect(audio.destination);
+        osc.start(); osc.stop(audio.currentTime + 1.1);
+      }
+      async function start() {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) { label.textContent = "Audio unavailable"; return; }
+        if (!audio) audio = new AudioContext();
+        if (audio.state === "suspended") await audio.resume();
+        if (playing) return;
+        playing = true; label.textContent = "Melody On"; dot.style.background = "#6b9b70";
+        tone(notes[step++ % notes.length]);
+        interval = setInterval(() => tone(notes[step++ % notes.length]), 850);
+        btn.setAttribute("aria-pressed", "true");
+      }
+      function stop() {
+        playing = false; label.textContent = "Play Melody"; dot.style.background = "";
+        if (interval) clearInterval(interval);
+        interval = null; btn.setAttribute("aria-pressed", "false");
+      }
+      btn.addEventListener("click", () => playing ? stop() : start());
+      window.startKeepsakeMelody = start;
+    })();
+
+    // Open the doors first, then draw the curtains apart.
+    (function setupEntrance() {
+      const gate = document.getElementById("entry-gate");
+      const button = document.getElementById("openDoorBtn");
+      let opened = false;
+      button.addEventListener("click", async () => {
+        if (opened) return;
+        opened = true;
+        button.disabled = true;
+        gate.classList.add("door-opening");
+        if (window.startKeepsakeMelody) window.startKeepsakeMelody();
+        setTimeout(() => gate.classList.add("curtain-opening"), 650);
+        setTimeout(() => gate.classList.add("hidden"), 2450);
+      });
+    })();
+
+    // Glossy 3D ruby scratch heart. Names remain completely hidden until 48% is cleared.
+    (function setupScratchHeart() {
+      const canvas = document.getElementById("heartCanvas");
+      const ctx = canvas.getContext("2d", { willReadFrequently: true });
+      const reveal = document.getElementById("heartRevealLayer");
+      const reset = document.getElementById("scratchAgainBtn");
+      const progress = document.getElementById("scratchProgress");
+      const hint = document.getElementById("scratchHint");
+      const W = canvas.width, H = canvas.height;
+      let drawing = false, unlocked = false, initialOpaque = 0;
+
+      function path() {
+        ctx.beginPath();
+        ctx.moveTo(W * .5, H * .91);
+        ctx.bezierCurveTo(W * .43, H * .82, W * .08, H * .57, W * .09, H * .32);
+        ctx.bezierCurveTo(W * .10, H * .08, W * .39, H * .04, W * .5, H * .25);
+        ctx.bezierCurveTo(W * .61, H * .04, W * .90, H * .08, W * .91, H * .32);
+        ctx.bezierCurveTo(W * .92, H * .57, W * .57, H * .82, W * .5, H * .91);
+        ctx.closePath();
+      }
+      function drawCover() {
+        unlocked = false; drawing = false;
+        reveal.classList.remove("unlocked");
+        progress.style.width = "0%";
+        hint.textContent = "Keep scratching — the names will appear after the heart is revealed.";
+        ctx.clearRect(0, 0, W, H);
+        ctx.save(); path(); ctx.clip();
+
+        const base = ctx.createLinearGradient(80, 35, W - 50, H);
+        base.addColorStop(0, "#ff718d");
+        base.addColorStop(.22, "#e92d58");
+        base.addColorStop(.58, "#c80e3b");
+        base.addColorStop(1, "#650b28");
+        ctx.fillStyle = base; ctx.fillRect(0, 0, W, H);
+
+        const shine = ctx.createRadialGradient(W*.30,H*.22,10,W*.34,H*.26,W*.62);
+        shine.addColorStop(0,"rgba(255,255,255,.68)");
+        shine.addColorStop(.25,"rgba(255,205,218,.24)");
+        shine.addColorStop(1,"rgba(255,255,255,0)");
+        ctx.fillStyle = shine; ctx.fillRect(0,0,W,H);
+
+        const shade = ctx.createLinearGradient(0,0,0,H);
+        shade.addColorStop(0,"rgba(255,255,255,.16)");
+        shade.addColorStop(.5,"rgba(255,255,255,0)");
+        shade.addColorStop(1,"rgba(35,0,15,.28)");
+        ctx.fillStyle = shade; ctx.fillRect(0,0,W,H);
+
+        // Fine gold glints on the glossy heart.
+        ctx.fillStyle = "rgba(255,235,190,.8)";
+        [[170,145,4],[225,112,3],[405,150,4],[455,210,2],[300,80,2]].forEach(([x,y,r]) => {
+          ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fill();
+        });
+        ctx.restore();
+
+        // Gold double outline and subtle shadow.
+        ctx.save(); path(); ctx.lineWidth = 17; ctx.strokeStyle = "#7b1734"; ctx.stroke();
+        path(); ctx.lineWidth = 8; ctx.strokeStyle = "#e8c27b"; ctx.stroke();
+        path(); ctx.lineWidth = 2; ctx.strokeStyle = "#fff0c9"; ctx.stroke(); ctx.restore();
+
+        // Scratch instruction printed on the cover.
+        ctx.save(); ctx.fillStyle = "rgba(255,248,239,.96)";
+        ctx.font = "800 25px 'Plus Jakarta Sans', sans-serif";
+        ctx.textAlign = "center"; ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(80,0,20,.35)"; ctx.shadowBlur = 8;
+        ctx.fillText("SCRATCH HERE", W/2, H*.52); ctx.restore();
+
+        const pixels = ctx.getImageData(0,0,W,H).data;
+        initialOpaque = 0;
+        for (let i=3; i<pixels.length; i+=4) if (pixels[i] > 100) initialOpaque++;
+      }
+      function clearedRatio() {
+        const pixels = ctx.getImageData(0,0,W,H).data;
+        let remaining = 0;
+        for (let i=3; i<pixels.length; i+=4) if (pixels[i] > 100) remaining++;
+        return initialOpaque ? Math.max(0,Math.min(1,1 - remaining/initialOpaque)) : 0;
+      }
+      function scratch(x,y) {
+        if (unlocked) return;
+        ctx.save(); ctx.globalCompositeOperation = "destination-out";
+        ctx.beginPath(); ctx.arc(x,y,43,0,Math.PI*2); ctx.fill(); ctx.restore();
+        const ratio = clearedRatio();
+        progress.style.width = Math.min(100,ratio*100) + "%";
+        if (ratio >= .48) {
+          unlocked = true;
+          ctx.clearRect(0,0,W,H);
+          reveal.classList.add("unlocked");
+          progress.style.width = "100%";
+          hint.textContent = "A beautiful little secret revealed.";
+        }
+      }
+      function position(event) {
+        const rect = canvas.getBoundingClientRect();
+        return { x:(event.clientX-rect.left)*W/rect.width, y:(event.clientY-rect.top)*H/rect.height };
+      }
+      canvas.addEventListener("pointerdown", event => {
+        if (unlocked) return;
+        drawing = true; canvas.setPointerCapture(event.pointerId);
+        const p = position(event); scratch(p.x,p.y);
+      });
+      canvas.addEventListener("pointermove", event => {
+        if (!drawing || unlocked) return;
+        const p = position(event); scratch(p.x,p.y);
+      });
+      function stop(event) {
+        drawing = false;
+        if (event && canvas.hasPointerCapture && canvas.hasPointerCapture(event.pointerId)) canvas.releasePointerCapture(event.pointerId);
+      }
+      canvas.addEventListener("pointerup",stop);
+      canvas.addEventListener("pointercancel",stop);
+      reset.addEventListener("click",drawCover);
+      drawCover();
+    })();
+
+    // Proposal elapsed timer and Nikah countdown. Both use the visitor's local time.
+    (function setupTimers() {
+      const proposalStart = new Date(2026, 6, 13, 2, 47, 0);
+      const nikahTarget = new Date(2032, 10, 15, 0, 0, 0);
+      const ids = ["propDays","propHours","propMins","propSecs","nikahDays","nikahHours","nikahMins","nikahSecs"];
+      const el = Object.fromEntries(ids.map(id => [id,document.getElementById(id)]));
+      const pad = n => String(n).padStart(2,"0");
+      function parts(ms) {
+        const seconds = Math.max(0,Math.floor(ms/1000));
+        return { days:Math.floor(seconds/86400), hours:Math.floor(seconds%86400/3600), mins:Math.floor(seconds%3600/60), secs:seconds%60 };
+      }
+      function update() {
+        const now = new Date();
+        const elapsed = parts(now-proposalStart);
+        el.propDays.textContent = elapsed.days.toLocaleString();
+        el.propHours.textContent = pad(elapsed.hours);
+        el.propMins.textContent = pad(elapsed.mins);
+        el.propSecs.textContent = pad(elapsed.secs);
+        const remaining = parts(nikahTarget-now);
+        el.nikahDays.textContent = remaining.days.toLocaleString();
+        el.nikahHours.textContent = pad(remaining.hours);
+        el.nikahMins.textContent = pad(remaining.mins);
+        el.nikahSecs.textContent = pad(remaining.secs);
+      }
+      update(); setInterval(update,1000);
+    })();
+
+    // Five empty gallery frames. Add your own filenames in the five src attributes above.
+    // No sample pictures or stock photos are inserted by this code.
+
+    // Distance uses the same approximate coordinates from the original page.
+    // This is straight-line distance, not the road-driving distance.
+    (function setupDistanceAndMap() {
+      const rukhsarCoord = [25.688,85.475];
+      const moazCoord = [25.795,85.855];
+      const toRad = d => d*Math.PI/180;
+      function haversine(a,b) {
+        const R=6371, dLat=toRad(b[0]-a[0]), dLon=toRad(b[1]-a[1]);
+        const lat1=toRad(a[0]), lat2=toRad(b[0]);
+        const h=Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+        return Math.round(2*R*Math.asin(Math.sqrt(h)));
+      }
+      document.getElementById("distanceBadge").textContent = "~" + haversine(rukhsarCoord,moazCoord) + " km apart (approx.)";
+      const fallback = document.getElementById("mapFallback");
+      if (typeof window.L === "undefined") return;
+      try {
+        if (fallback) fallback.style.display = "none";
+        const map = L.map("districtMap",{scrollWheelZoom:false}).setView([25.74,85.66],10);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{
+          maxZoom:18, attribution:"&copy; OpenStreetMap contributors"
+        }).addTo(map);
+        L.circleMarker(rukhsarCoord,{radius:9,color:"#8e2749",weight:2,fillColor:"#d94e77",fillOpacity:.95})
+          .addTo(map).bindPopup("Rukhsar · Shaikhopur, Vaishali");
+        L.circleMarker(moazCoord,{radius:9,color:"#8e2749",weight:2,fillColor:"#d4a45d",fillOpacity:.95})
+          .addTo(map).bindPopup("Moaz · Rampur, Warisnagar, Samastipur");
+        L.polyline([rukhsarCoord,moazCoord],{color:"#d96b8d",weight:4,dashArray:"8,8"}).addTo(map);
+        map.fitBounds([rukhsarCoord,moazCoord],{padding:[28,28]});
+        setTimeout(() => map.invalidateSize(),500);
+      } catch (error) {
+        if (fallback) fallback.style.display = "grid";
+      }
+    })();
+
+    // Envelope opens the message. You can edit the letter text directly in the HTML.
+    (function setupLetter() {
+      const button = document.getElementById("letterButton");
+      const message = document.getElementById("letterMessage");
+      button.addEventListener("click",() => {
+        const isOpen = button.classList.toggle("open");
+        message.classList.toggle("show",isOpen);
+        button.setAttribute("aria-expanded",String(isOpen));
+      });
+    })();
+
+    // Ameen count persists on this device/browser using localStorage.
+    (function setupAmeenCounter() {
+      const button = document.getElementById("ameenBtn");
+      const label = document.getElementById("ameenCount");
+      let count = 0;
+      try { count = Number(localStorage.getItem("moazRukhsarAmeen") || 0); } catch(e) {}
+      function render() { label.textContent = count + (count===1 ? " Ameen prayer offered" : " Ameen prayers offered"); }
+      render();
+      button.addEventListener("click",() => {
+        count++;
+        try { localStorage.setItem("moazRukhsarAmeen",String(count)); } catch(e) {}
+        render();
+      });
+    })();
+  </script>
+</body>
+</html>
